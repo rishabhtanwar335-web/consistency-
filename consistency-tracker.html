@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Consistency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light dark;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #F1EEE6;
+  --surface: #FBF9F4;
+  --surface-2: #EAE4D6;
+  --border: #D9D0BD;
+  --text: #211C14;
+  --text-dim: #655A47;
+  --accent: #8F5522;
+  --accent-ink: #FFFFFF;
+  --danger: #B4352A;
+  --scrim: rgba(20, 16, 10, 0.4);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #18140F;
+    --surface: #221C15;
+    --surface-2: #2C241A;
+    --border: #3D3325;
+    --text: #F2EAD9;
+    --text-dim: #B0A188;
+    --accent: #D9974F;
+    --accent-ink: #1A130B;
+    --danger: #F08A7C;
+    --scrim: rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #18140F;
+  --surface: #221C15;
+  --surface-2: #2C241A;
+  --border: #3D3325;
+  --text: #F2EAD9;
+  --text-dim: #B0A188;
+  --accent: #D9974F;
+  --accent-ink: #1A130B;
+  --danger: #F08A7C;
+  --scrim: rgba(0, 0, 0, 0.6);
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+button { font-family: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* loading + error */
+#loading, #loadError {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 24px; text-align: center; color: var(--text-dim); font-size: 0.95rem;
+}
+#loadError p { margin: 0; }
+.err-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.2rem; color: var(--text); }
+.spinner {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* bars */
+.bar-outer {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  display: flex; justify-content: center;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.bar-outer.bottom {
+  position: fixed; top: auto; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-bottom: 0; border-top: 1px solid var(--border);
+}
+.bar-inner { width: 100%; max-width: 560px; }
+#topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; }
+.brand { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-name { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; }
+.brand-date { font-size: 0.75rem; color: var(--text-dim); font-weight: 500; margin-top: 2px; }
+.topbar-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+}
+.icon-btn svg { width: 19px; height: 19px; }
+.icon-btn:active { background: var(--surface-2); }
+
+#bottomnav { display: flex; padding: 6px 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: 0; color: var(--text-dim);
+  font-size: 0.7rem; font-weight: 500; padding: 8px 4px; min-height: 52px; border-radius: 10px; cursor: pointer;
+}
+.nav-btn svg { width: 22px; height: 22px; }
+.nav-btn.active { color: var(--accent); font-weight: 600; }
+
+#main { width: 100%; max-width: 560px; margin: 0 auto; padding: 18px 20px 110px; }
+
+/* shared */
+.banner {
+  font-size: 0.8rem; color: var(--text-dim); background: var(--surface-2);
+  border-radius: 10px; padding: 9px 12px; margin-bottom: 14px;
+}
+.hint { font-size: 0.8rem; color: var(--text-dim); margin: 0 0 14px; }
+.week-nav, .year-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.week-range, .year-label { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 1.2rem; text-align: center; }
+.year-label { font-weight: 700; font-size: 1.35rem; }
+.nav-arrow {
+  width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.nav-arrow svg { width: 18px; height: 18px; }
+.nav-arrow:active { background: var(--surface-2); }
+.today-btn {
+  display: block; margin: 0 auto 14px; padding: 8px 16px; min-height: 36px;
+  border-radius: 999px; border: 1px solid var(--accent); color: var(--accent);
+  background: transparent; font-size: 0.82rem; font-weight: 500; cursor: pointer;
+}
+.cluster-badge {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  margin: 0 0 14px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--chip, var(--border)); background: var(--surface);
+  font-size: 0.85rem; cursor: pointer;
+}
+.cluster-badge .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--chip); flex-shrink: 0; }
+.badge-text { min-width: 0; overflow-wrap: anywhere; }
+.summary-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.summary-stat {
+  flex: 1; min-width: 0; text-align: center; padding: 12px 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+}
+.stat-num { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.25rem; }
+.stat-label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+
+/* week grid */
+.grid-wrap { overflow-x: auto; margin: 0 -4px 20px; padding: 0 4px; -webkit-overflow-scrolling: touch; }
+.week-grid { border-collapse: separate; border-spacing: 5px; width: 100%; table-layout: fixed; }
+.week-grid th, .week-grid td { padding: 0; text-align: center; }
+.week-grid thead th { font-weight: 500; padding-bottom: 2px; vertical-align: bottom; }
+.week-grid .corner { width: 50px; }
+.cat-icon { display: block; font-size: 1.15rem; line-height: 1.35; }
+.cat-label { display: block; font-size: 0.62rem; color: var(--text-dim); font-weight: 500; letter-spacing: 0.01em; overflow: hidden; text-overflow: clip; }
+.day-cell { text-align: left !important; width: 50px; white-space: nowrap; }
+.day-name { display: block; font-size: 0.72rem; color: var(--text-dim); font-weight: 500; }
+.day-num { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 1.05rem; line-height: 1.1; }
+tr.today-row .day-num { color: var(--accent); font-weight: 800; }
+tr.today-row .day-name { color: var(--accent); font-weight: 600; }
+.cell {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; min-width: 0; aspect-ratio: 1; padding: 0; cursor: pointer;
+  border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface);
+  transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.cell:active { transform: scale(0.9); }
+.cell.checked { background: var(--cat-color); border-color: var(--cat-color); animation: pop 0.22s ease; }
+.cell .check-icon { width: 58%; height: 58%; color: #fff; }
+@keyframes pop { 0% { transform: scale(0.72); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+.notes-block label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+.notes-block textarea, .modal input[type="text"], .modal input[type="date"] {
+  width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-family: inherit; font-size: 16px;
+}
+.notes-block textarea { min-height: 84px; resize: vertical; }
+
+/* year */
+.year-heatmap { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 16px; }
+.month-row { display: flex; align-items: center; gap: 10px; }
+.month-label { width: 32px; flex-shrink: 0; font-size: 0.75rem; color: var(--text-dim); font-weight: 600; }
+.month-squares { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.week-sq, .mini-sq {
+  display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 8px; background: transparent; color: var(--text);
+  font-size: 0.68rem; font-weight: 500;
+}
+.week-sq { width: 32px; height: 32px; }
+.mini-sq { width: 28px; height: 28px; border-radius: 7px; }
+.week-sq.has-data, .mini-sq.has-data { border-color: transparent; font-weight: 600; }
+.week-sq.current, .mini-sq.current { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cluster-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+.legend-chip {
+  display: flex; align-items: center; gap: 7px; padding: 7px 12px; min-height: 34px;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  font-size: 0.78rem; cursor: pointer;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.legend-chip .dot { width: 9px; height: 9px; }
+.cat-bars h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.05rem; font-weight: 600; margin: 0 0 6px; }
+.cat-bar-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.cat-bar-icon { font-size: 1.05rem; width: 24px; text-align: center; flex-shrink: 0; }
+.cat-bar-label { flex: 1; font-size: 0.9rem; min-width: 0; }
+.cat-bar-count { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 0.9rem; color: var(--text-dim); white-space: nowrap; }
+
+/* cycles */
+.cycles-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cycles-header h2, .schedule-intro h2 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.35rem; font-weight: 700; margin: 0; }
+.primary-btn {
+  background: var(--accent); color: var(--accent-ink); border: 0; min-height: 40px;
+  padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+}
+.primary-btn:active { filter: brightness(0.92); }
+.danger-btn {
+  background: var(--danger); color: #fff; border: 0; min-height: 40px;
+  padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+}
+:root[data-theme="dark"] .danger-btn { color: #1A130B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .danger-btn { color: #1A130B; } }
+.text-btn { background: none; border: 0; color: var(--text-dim); font-size: 0.88rem; font-weight: 500; cursor: pointer; padding: 10px 8px; min-height: 40px; }
+.text-btn.danger { color: var(--danger); }
+.empty-state { padding: 26px 18px; text-align: center; border: 1px dashed var(--border); border-radius: 14px; margin-bottom: 16px; }
+.empty-state p { margin: 0; }
+.empty-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 1.05rem; margin-bottom: 6px !important; }
+.empty-sub { color: var(--text-dim); font-size: 0.86rem; }
+.cluster-list { display: flex; flex-direction: column; gap: 10px; }
+.cluster-card { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.cluster-card-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; background: none; border: 0; cursor: pointer; text-align: left; }
+.cluster-head-text { flex: 1; min-width: 0; }
+.cluster-name { font-weight: 600; font-size: 0.98rem; overflow-wrap: anywhere; }
+.cluster-range { font-size: 0.76rem; color: var(--text-dim); margin-top: 2px; }
+.cluster-status { font-size: 0.76rem; color: var(--accent); font-weight: 500; margin-top: 2px; }
+.cluster-pct { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.15rem; }
+.cluster-body { padding: 0 14px 14px; border-top: 1px solid var(--border); }
+.mini-heatmap { display: flex; flex-wrap: wrap; gap: 5px; margin: 14px 0; }
+.cluster-cats { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.cluster-cat-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.mini-bar { flex: 1; height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 4px; }
+.cluster-cat-row .cat-bar-label { flex: 0 0 68px; font-size: 0.82rem; }
+.cluster-cat-row .cat-bar-count { flex: 0 0 auto; font-size: 0.8rem; min-width: 44px; text-align: right; }
+.cluster-actions { display: flex; gap: 14px; }
+
+/* schedule */
+.schedule-intro p { color: var(--text-dim); font-size: 0.86rem; margin: 4px 0 16px; }
+.schedule-list { display: flex; flex-direction: column; gap: 12px; }
+.sched-day { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+.sched-day-head { display: flex; align-items: center; gap: 10px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 1.02rem; margin-bottom: 6px; }
+.gym-badge { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.7rem; font-weight: 500; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); }
+.sched-block { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 0.86rem; }
+.sched-time { width: 128px; flex-shrink: 0; color: var(--text-dim); font-size: 0.78rem; }
+.sched-icon { width: 22px; text-align: center; flex-shrink: 0; }
+.sched-label { flex: 1; min-width: 0; }
+
+/* modal + toast */
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
+.modal {
+  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  background: var(--surface); border-radius: 18px 18px 0 0; border: 1px solid var(--border); border-bottom: 0;
+  padding: 22px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 640px) {
+  .modal-backdrop { align-items: center; }
+  .modal { border-radius: 18px; border-bottom: 1px solid var(--border); padding-bottom: 22px; }
+}
+.modal h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.2rem; font-weight: 700; margin: 0 0 16px; overflow-wrap: anywhere; }
+.modal label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 14px; font-weight: 500; }
+.modal label input { margin-top: 6px; }
+.modal input[type="text"], .modal input[type="date"] { background: var(--bg); }
+.date-row { display: flex; gap: 10px; }
+.date-row label { flex: 1; min-width: 0; }
+.preview { font-size: 0.84rem; color: var(--accent); font-weight: 500; min-height: 1.3em; margin-bottom: 4px; }
+.preview.preview-error { color: var(--danger); }
+.modal-help, .modal-text { font-size: 0.8rem; color: var(--text-dim); margin: 0 0 14px; }
+.modal-text { font-size: 0.9rem; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; padding: 0; }
+.swatch.selected { border-color: var(--text); }
+.modal-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.modal-actions > div { display: flex; gap: 6px; align-items: center; }
+#toastRoot {
+  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px;
+  font-size: 0.86rem; max-width: 86%; text-align: center; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease; z-index: 60;
+}
+#toastRoot.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .cell.checked { animation: none; transition: none; }
+  .spinner { animation-duration: 2s; }
+  #toastRoot { transition: none; }
+}
+</style>
+</head>
+<body>
+<div id="loading" role="status"><div class="spinner" aria-hidden="true"></div><div>Loading your data…</div></div>
+<div id="loadError" style="display:none" role="alert">
+  <p class="err-title">Couldn’t load your data</p>
+  <p>Nothing has been changed. Check your connection and try again.</p>
+  <button class="primary-btn" data-action="retry-load">Try again</button>
+</div>
+<div id="app" style="display:none">
+  <header class="bar-outer"><div id="topbar" class="bar-inner"></div></header>
+  <main id="main"></main>
+  <nav class="bar-outer bottom" aria-label="Sections"><div id="bottomnav" class="bar-inner"></div></nav>
+</div>
+<div id="modalRoot"></div>
+<div id="toastRoot" role="status" aria-live="polite"></div>
+<script>
+
+'use strict';
+
+/* ---------- Constants ---------- */
+
+var CATEGORIES = [
+  { key: 'gym', label: 'Gym', short: 'Gym', icon: '\ud83c\udfcb\ufe0f', color: '#E2572B' },
+  { key: 'selfStudy', label: 'Self Study', short: 'Study', icon: '\ud83d\udcda', color: '#4C86D6' },
+  { key: 'oncourt', label: 'Oncourt', short: 'Court', icon: '\ud83c\udfc0', color: '#3FA35C' },
+  { key: 'german', label: 'German', short: 'German', icon: '\ud83c\udde9\ud83c\uddea', color: '#B8901F' },
+  { key: 'film', label: 'Film', short: 'Film', icon: '\ud83c\udfa5', color: '#A855C4' },
+  { key: 'med', label: 'Med', short: 'Med', icon: '\ud83e\uddd8', color: '#23948B' }
+];
+
+var DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+var DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+var DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+var MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+var CLUSTER_COLORS = ['#D65F5F', '#5F9FD6', '#7FBF6B', '#D6B25F', '#A97FD6', '#5FB8B2', '#D67FAE', '#8C8C69'];
+var HEATMAP_HEX = '#C98A4B';
+
+var SCHEDULE = {
+  mon: { gymDay: true, blocks: [
+    ['7:00\u20139:00 AM', '\ud83c\udfc0', 'Basketball'],
+    ['9:20\u20139:40 AM', '\ud83c\udfa5', 'Film'],
+    ['9:40\u201310:30 AM', '\ud83d\udcda', 'Self Study'],
+    ['10:30 AM\u201312:30 PM', '\ud83d\udcd6', 'Micro'],
+    ['12:30\u20131:30 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['1:30\u20133:30 PM', '\ud83d\udcd6', 'VAC'],
+    ['3:30\u20135:40 PM', '\ud83d\udcda', 'Self Study'],
+    ['6:00\u20138:00 PM', '\ud83c\udfcb\ufe0f', 'Gym'],
+    ['8:20\u20139:00 PM', '\ud83d\udcda', 'Self Study'],
+    ['9:00\u20139:50 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:50\u201310:00 PM', '\ud83e\uddd8', 'Wind Down']
+  ]},
+  tue: { gymDay: false, blocks: [
+    ['7:00\u20139:00 AM', '\ud83c\udfc0', 'Basketball'],
+    ['9:20\u20139:40 AM', '\ud83c\udfa5', 'Film'],
+    ['9:40\u201310:30 AM', '\ud83d\udcda', 'Self Study'],
+    ['10:30 AM\u201312:30 PM', '\ud83d\udcd6', 'Maths'],
+    ['12:50\u20131:50 PM', '\ud83c\udfc0', 'Court'],
+    ['2:10\u20133:30 PM', '\ud83d\udcda', 'Self Study'],
+    ['3:30\u20135:30 PM', '\ud83d\udcd6', 'Stats'],
+    ['5:30\u20137:00 PM', '\ud83d\udcda', 'Self Study'],
+    ['7:00\u20139:50 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:50\u201310:00 PM', '\ud83e\uddd8', 'Wind Down']
+  ]},
+  wed: { gymDay: true, blocks: [
+    ['7:00\u20139:00 AM', '\ud83c\udfc0', 'Basketball'],
+    ['9:20\u20139:40 AM', '\ud83c\udfa5', 'Film'],
+    ['9:40 AM\u201312:30 PM', '\ud83d\udcda', 'Self Study'],
+    ['12:30\u20132:30 PM', '\ud83d\udcd6', 'Calc'],
+    ['2:30\u20133:20 PM', '\ud83d\udcda', 'Self Study'],
+    ['3:20\u20135:40 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['6:00\u20138:00 PM', '\ud83c\udfcb\ufe0f', 'Gym'],
+    ['8:20\u20139:50 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:50\u201310:00 PM', '\ud83e\uddd8', 'Wind Down']
+  ]},
+  thu: { gymDay: false, blocks: [
+    ['7:00\u20139:00 AM', '\ud83c\udfc0', 'Basketball'],
+    ['9:20\u20139:40 AM', '\ud83c\udfa5', 'Film'],
+    ['9:40\u201311:30 AM', '\ud83d\udcda', 'Self Study'],
+    ['11:30 AM\u20132:30 PM', '\ud83d\udcd6', 'Stats'],
+    ['2:50\u20133:50 PM', '\ud83c\udfc0', 'Court'],
+    ['4:10\u20136:00 PM', '\ud83d\udcda', 'Self Study'],
+    ['6:00\u20139:50 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:50\u201310:00 PM', '\ud83e\uddd8', 'Wind Down']
+  ]},
+  fri: { gymDay: true, blocks: [
+    ['7:00\u20139:00 AM', '\ud83c\udfc0', 'Basketball'],
+    ['9:20\u20139:40 AM', '\ud83c\udfa5', 'Film'],
+    ['9:40\u201310:30 AM', '\ud83d\udcda', 'Self Study'],
+    ['10:30 AM\u201312:30 PM', '\ud83d\udcd6', 'Micro'],
+    ['12:30\u20131:30 PM', '\ud83d\udcda', 'Self Study'],
+    ['1:30\u20132:30 PM', '\ud83d\udcd6', 'Maths'],
+    ['2:30\u20134:30 PM', '\ud83d\udcd6', 'AEC'],
+    ['4:30\u20135:50 PM', '\ud83d\udcda', 'Self Study'],
+    ['6:10\u20138:10 PM', '\ud83c\udfcb\ufe0f', 'Gym'],
+    ['8:30\u20139:50 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:50\u201310:00 PM', '\ud83e\uddd8', 'Wind Down']
+  ]},
+  sat: { gymDay: false, blocks: [
+    ['7:00\u20138:10 AM', '\ud83c\udfc0', 'Basketball'],
+    ['8:30\u201310:30 AM', '\ud83d\udcd6', 'Calc'],
+    ['10:30\u201310:50 AM', '\ud83c\udfa5', 'Film'],
+    ['10:50\u201311:30 AM', '\ud83d\udcda', 'Self Study'],
+    ['11:30 AM\u20133:30 PM', '\ud83d\udcd6', 'SEC'],
+    ['3:50\u20135:40 PM', '\ud83c\udfc0', 'Court'],
+    ['6:00\u20138:30 PM', '\ud83d\udcda', 'Self Study'],
+    ['8:30\u20139:50 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:50\u201310:00 PM', '\ud83e\uddd8', 'Wind Down']
+  ]},
+  sun: { gymDay: false, blocks: [
+    ['7:00\u20139:40 AM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['10:00 AM\u20131:00 PM', '\ud83c\udfc0', 'Court'],
+    ['1:20\u20131:40 PM', '\ud83c\udfa5', 'Film'],
+    ['1:40\u20135:20 PM', '\ud83d\udcda', 'Self Study'],
+    ['5:20\u20139:30 PM', '\ud83c\udde9\ud83c\uddea', 'German'],
+    ['9:30\u20139:40 PM', '\ud83e\uddd8', 'Wind Down']
+  ]}
+};
+
+/* ---------- Shared constants / utilities ---------- */
+
+var MS_DAY = 86400000;
+var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+var HEX_RE = /^#[0-9a-fA-F]{6}$/;
+var SEGMENT_RE = /^[A-Za-z0-9_\-.~:@+]+$/;
+var KNOWN_CODES = {
+  invalid_argument: 1, resource_exhausted: 1, quota_exceeded: 1, unavailable: 1, revoked: 1,
+  not_granted: 1, capability_disabled: 1, capability_removed: 1, transform_error: 1
+};
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function dateKey(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function keyToDate(key) {
+  var parts = key.split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function stripTime(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function getMonday(d) {
+  var date = stripTime(d);
+  var day = date.getDay();
+  var diff = (day === 0 ? -6 : 1 - day);
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+function addDays(d, n) {
+  var date = new Date(d);
+  date.setDate(date.getDate() + n);
+  return date;
+}
+
+function addWeeks(d, n) { return addDays(d, n * 7); }
+
+function isSameDate(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatDateShort(d) { return MONTH_SHORT[d.getMonth()] + ' ' + d.getDate(); }
+
+function formatDateFull(d) { return MONTH_SHORT[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+
+function formatWeekRange(monday) {
+  var sunday = addDays(monday, 6);
+  if (monday.getMonth() === sunday.getMonth() && monday.getFullYear() === sunday.getFullYear()) {
+    return MONTH_SHORT[monday.getMonth()] + ' ' + monday.getDate() + '\u2013' + sunday.getDate() + ', ' + sunday.getFullYear();
+  }
+  if (monday.getFullYear() === sunday.getFullYear()) {
+    return formatDateShort(monday) + ' \u2013 ' + formatDateShort(sunday) + ', ' + sunday.getFullYear();
+  }
+  return formatDateShort(monday) + ', ' + monday.getFullYear() + ' \u2013 ' + formatDateShort(sunday) + ', ' + sunday.getFullYear();
+}
+
+function hexToRgba(hex, alpha) {
+  var h = hex.replace('#', '');
+  var r = parseInt(h.substring(0, 2), 16);
+  var g = parseInt(h.substring(2, 4), 16);
+  var b = parseInt(h.substring(4, 6), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, function (ch) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+  });
+}
+
+function sleep(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+/* ---------- App state ---------- */
+
+var today = stripTime(new Date());
+var todayMonday = getMonday(today);
+
+function refreshToday() {
+  today = stripTime(new Date());
+  todayMonday = getMonday(today);
+}
+
+var state = {
+  currentTab: 'week',
+  currentWeekMonday: todayMonday,
+  currentYear: today.getFullYear(),
+  weeks: {},
+  clusters: [],
+  ready: false,
+  openClusterId: null
+};
+
+/* ---------- Normalizers (always return fresh, mutable objects) ---------- */
+
+function emptyDay() {
+  var d = {};
+  CATEGORIES.forEach(function (c) { d[c.key] = false; });
+  return d;
+}
+
+function emptyWeek(weekKey) {
+  var days = {};
+  DAY_KEYS.forEach(function (k) { days[k] = emptyDay(); });
+  return { weekStart: weekKey, days: days, notes: '', updatedAt: new Date().toISOString() };
+}
+
+function normalizeWeek(raw, weekKey) {
+  var w = emptyWeek(weekKey);
+  if (raw && typeof raw === 'object') {
+    if (raw.days && typeof raw.days === 'object') {
+      DAY_KEYS.forEach(function (dk) {
+        var rd = raw.days[dk];
+        if (rd && typeof rd === 'object') {
+          CATEGORIES.forEach(function (c) { w.days[dk][c.key] = rd[c.key] === true; });
+        }
+      });
+    }
+    if (typeof raw.notes === 'string') w.notes = raw.notes;
+    if (typeof raw.updatedAt === 'string') w.updatedAt = raw.updatedAt;
+  }
+  return w;
+}
+
+function normalizeCluster(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.id !== 'string' || !raw.id) return null;
+  if (typeof raw.startWeek !== 'string' || !DATE_RE.test(raw.startWeek)) return null;
+  if (typeof raw.endWeek !== 'string' || !DATE_RE.test(raw.endWeek)) return null;
+  return {
+    id: raw.id,
+    name: (typeof raw.name === 'string' && raw.name) ? raw.name : 'Untitled cycle',
+    startWeek: raw.startWeek,
+    endWeek: raw.endWeek,
+    color: (typeof raw.color === 'string' && HEX_RE.test(raw.color)) ? raw.color : CLUSTER_COLORS[0],
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : ''
+  };
+}
+
+/* ---------- Store (persistence) ---------- */
+
+var Store = {
+  mode: 'local',
+  base: null,
+  downloadsNs: null,
+  lastErrorCode: null,
+
+  init: async function () {
+    var hasUse = !!(window.claude && typeof window.claude.use === 'function');
+    async function getNs(name) {
+      if (!hasUse) return null;
+      try { return await window.claude.use(name); } catch (e) { return null; }
+    }
+    var r = await Promise.all([getNs('db'), getNs('user'), getNs('downloads')]);
+    this.downloadsNs = r[2] || null;
+
+    var uid = null;
+    if (r[0] && r[1]) {
+      try {
+        var me = await r[1].me();
+        uid = (me && typeof me.id === 'string' && me.id) ? me.id : null;
+      } catch (e) {
+        uid = null;
+      }
+    }
+    this.base = null;
+    this.mode = 'local';
+    if (r[0] && uid && SEGMENT_RE.test(uid)) {
+      try {
+        this.base = r[0].doc('data/users/' + uid + '/tracker');
+        this.mode = 'db';
+      } catch (e) {
+        this.base = null;
+        this.mode = 'local';
+      }
+    }
+  },
+
+  weeksCol: function () { return this.base.collection('weeks'); },
+  clustersCol: function () { return this.base.collection('clusters'); },
+
+  /* Runs a db call; retries once (short randomized delay) for `unavailable`/unknown codes. */
+  call: async function (fn) {
+    this.lastErrorCode = null;
+    try {
+      return await fn();
+    } catch (e) {
+      var code = e && e.code;
+      if (code && KNOWN_CODES[code] && code !== 'unavailable') {
+        this.lastErrorCode = code;
+        throw e;
+      }
+      await sleep(300 + Math.random() * 500);
+      try {
+        return await fn();
+      } catch (e2) {
+        this.lastErrorCode = (e2 && e2.code) || 'unavailable';
+        throw e2;
+      }
+    }
+  },
+
+  errorMessage: function (fallback) {
+    switch (this.lastErrorCode) {
+      case 'quota_exceeded': return 'Storage is full. Delete old cycles to free up space.';
+      case 'revoked': return 'Access changed. Reopen this page to keep saving.';
+      case 'resource_exhausted': return 'Too many saves at once. Try again in a moment.';
+      default: return fallback;
+    }
+  },
+
+  loadAll: async function () {
+    if (this.mode === 'db') {
+      var self = this;
+      try {
+        var snaps = await this.call(function () {
+          return Promise.all([
+            self.weeksCol().limit(1000).get(),
+            self.clustersCol().limit(1000).get()
+          ]);
+        });
+        var weeks = {};
+        snaps[0].docs.forEach(function (d) {
+          if (!d.exists || !DATE_RE.test(d.id)) return;
+          weeks[d.id] = normalizeWeek(d.data(), d.id);
+        });
+        var clusters = [];
+        snaps[1].docs.forEach(function (d) {
+          if (!d.exists) return;
+          var c = normalizeCluster(Object.assign({}, d.data(), { id: d.id }));
+          if (c) clusters.push(c);
+        });
+        return { ok: true, weeks: weeks, clusters: clusters };
+      } catch (e) {
+        console.error('db load failed', e);
+        return { ok: false, weeks: {}, clusters: [] };
+      }
+    }
+    var lw = {};
+    var lc = [];
+    try {
+      var rw = JSON.parse(localStorage.getItem('ct_weeks') || '{}');
+      Object.keys(rw).forEach(function (k) {
+        if (DATE_RE.test(k)) lw[k] = normalizeWeek(rw[k], k);
+      });
+    } catch (e) {}
+    try {
+      var rc = JSON.parse(localStorage.getItem('ct_clusters') || '[]');
+      if (Array.isArray(rc)) {
+        rc.forEach(function (c) {
+          var n = normalizeCluster(c);
+          if (n) lc.push(n);
+        });
+      }
+    } catch (e) {}
+    return { ok: true, weeks: lw, clusters: lc };
+  },
+
+  saveWeek: async function (weekKey, data) {
+    if (this.mode === 'db') {
+      var self = this;
+      try {
+        await this.call(function () { return self.weeksCol().doc(weekKey).set(data); });
+        return true;
+      } catch (e) {
+        console.error('saveWeek failed', e);
+        return false;
+      }
+    }
+    return this.persistWeeksLocal();
+  },
+
+  persistWeeksLocal: function () {
+    try {
+      localStorage.setItem('ct_weeks', JSON.stringify(state.weeks));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  persistClustersLocal: function () {
+    try {
+      localStorage.setItem('ct_clusters', JSON.stringify(state.clusters));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  /* Retriable-create idiom: mint the ref once, then set() it (a retry cannot duplicate). */
+  addCluster: async function (data) {
+    if (this.mode === 'db') {
+      var self = this;
+      try {
+        var ref = this.clustersCol().doc();
+        await this.call(function () { return ref.set(data); });
+        return ref.id;
+      } catch (e) {
+        console.error('addCluster failed', e);
+        return null;
+      }
+    }
+    return 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  },
+
+  updateCluster: async function (id, patch) {
+    if (this.mode === 'db') {
+      var self = this;
+      try {
+        await this.call(function () { return self.clustersCol().doc(id).update(patch); });
+        return true;
+      } catch (e) {
+        console.error('updateCluster failed', e);
+        return false;
+      }
+    }
+    return this.persistClustersLocal();
+  },
+
+  deleteCluster: async function (id) {
+    if (this.mode === 'db') {
+      var self = this;
+      try {
+        await this.call(function () { return self.clustersCol().doc(id).delete(); });
+        return true;
+      } catch (e) {
+        console.error('deleteCluster failed', e);
+        return false;
+      }
+    }
+    return this.persistClustersLocal();
+  }
+};
+
+/* ---------- Write queue (one write at a time per week document, bursts coalesced) ---------- */
+
+var saveInFlight = {};
+var saveDirty = {};
+var failedWeeks = {};
+var mutationCount = 0;
+var clusterBusy = false;
+
+function hasPendingSaves() {
+  for (var k in saveInFlight) {
+    if (saveInFlight[k]) return true;
+  }
+  return false;
+}
+
+function hasUnsynced() {
+  return hasPendingSaves() || Object.keys(failedWeeks).length > 0;
+}
+
+async function persistWeek(weekKey) {
+  mutationCount++;
+  if (saveInFlight[weekKey]) {
+    saveDirty[weekKey] = true;
+    return true;
+  }
+  saveInFlight[weekKey] = true;
+  var ok = true;
+  try {
+    do {
+      saveDirty[weekKey] = false;
+      ok = await Store.saveWeek(weekKey, state.weeks[weekKey]);
+    } while (saveDirty[weekKey]);
+  } finally {
+    saveInFlight[weekKey] = false;
+  }
+  if (ok) delete failedWeeks[weekKey];
+  else failedWeeks[weekKey] = true;
+  return ok;
+}
+
+function retryFailed() {
+  Object.keys(failedWeeks).forEach(function (wk) {
+    if (state.weeks[wk]) {
+      persistWeek(wk).then(function (ok) {
+        if (ok) showToast('Saved');
+      });
+    } else {
+      delete failedWeeks[wk];
+    }
+  });
+}
+
+/* ---------- Data helpers ---------- */
+
+function ensureWeek(weekKey) {
+  if (!state.weeks[weekKey]) {
+    state.weeks[weekKey] = emptyWeek(weekKey);
+  }
+  return state.weeks[weekKey];
+}
+
+function weekCompletion(weekKey) {
+  var w = state.weeks[weekKey];
+  var total = DAY_KEYS.length * CATEGORIES.length;
+  if (!w) return { checked: 0, total: total, pct: 0 };
+  var checked = 0;
+  DAY_KEYS.forEach(function (k) {
+    CATEGORIES.forEach(function (c) {
+      if (w.days[k] && w.days[k][c.key]) checked++;
+    });
+  });
+  return { checked: checked, total: total, pct: total ? Math.round((checked / total) * 100) : 0 };
+}
+
+function anyCheckedOnDate(d) {
+  var wk = dateKey(getMonday(d));
+  var w = state.weeks[wk];
+  if (!w) return false;
+  var dk = DAY_KEYS[(d.getDay() + 6) % 7];
+  var day = w.days[dk];
+  if (!day) return false;
+  return CATEGORIES.some(function (c) { return !!day[c.key]; });
+}
+
+function currentStreak() {
+  var streak = 0;
+  var cursor = new Date(today);
+  if (!anyCheckedOnDate(cursor)) {
+    cursor = addDays(cursor, -1);
+  }
+  while (anyCheckedOnDate(cursor)) {
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+}
+
+function clusterForWeek(weekKey) {
+  var found = null;
+  state.clusters.forEach(function (c) {
+    if (!found && weekKey >= c.startWeek && weekKey <= c.endWeek) found = c;
+  });
+  return found;
+}
+
+function weeksInCluster(cluster) {
+  var result = [];
+  var cursor = keyToDate(cluster.startWeek);
+  var end = keyToDate(cluster.endWeek);
+  var guard = 0;
+  while (cursor <= end && guard < 200) {
+    result.push(dateKey(cursor));
+    cursor = addWeeks(cursor, 1);
+    guard++;
+  }
+  return result;
+}
+
+/* Counts only days up to and including today, so an in-progress cycle isn't penalised for days that haven't happened. */
+function clusterStats(cluster) {
+  var weeks = weeksInCluster(cluster);
+  var todayKey = dateKey(today);
+  var perCat = {};
+  CATEGORIES.forEach(function (c) { perCat[c.key] = 0; });
+  var checked = 0;
+  var elapsedDays = 0;
+  weeks.forEach(function (wk) {
+    var monday = keyToDate(wk);
+    var w = state.weeks[wk];
+    for (var i = 0; i < 7; i++) {
+      var dayKeyStr = dateKey(addDays(monday, i));
+      if (dayKeyStr > todayKey) break;
+      elapsedDays++;
+      var day = w && w.days[DAY_KEYS[i]];
+      if (day) {
+        CATEGORIES.forEach(function (c) {
+          if (day[c.key]) {
+            checked++;
+            perCat[c.key]++;
+          }
+        });
+      }
+    }
+  });
+  var total = elapsedDays * CATEGORIES.length;
+  return {
+    weeks: weeks,
+    elapsedDays: elapsedDays,
+    totalDays: weeks.length * 7,
+    checked: checked,
+    total: total,
+    pct: total ? Math.round((checked / total) * 100) : null,
+    perCat: perCat
+  };
+}
+
+function clusterStatusText(stats) {
+  if (stats.elapsedDays === 0) return 'Upcoming';
+  if (stats.elapsedDays >= stats.totalDays) return 'Finished';
+  return 'In progress \u00b7 week ' + (Math.floor((stats.elapsedDays - 1) / 7) + 1) + ' of ' + stats.weeks.length;
+}
+
+function weeksGroupedByMonth(year) {
+  var months = [];
+  for (var m = 0; m < 12; m++) months.push([]);
+  var cursor = getMonday(new Date(year, 0, 1));
+  var boundary = new Date(year, 11, 31);
+  while (cursor <= boundary) {
+    if (cursor.getFullYear() === year) {
+      months[cursor.getMonth()].push(new Date(cursor));
+    }
+    cursor = addWeeks(cursor, 1);
+  }
+  return months;
+}
+
+function yearStats(year) {
+  var months = weeksGroupedByMonth(year);
+  var allWeeks = [];
+  months.forEach(function (arr) { allWeeks = allWeeks.concat(arr); });
+  var loggedWeeks = 0;
+  var totalPct = 0;
+  var best = null;
+  var perCatTotals = {};
+  CATEGORIES.forEach(function (c) { perCatTotals[c.key] = 0; });
+  allWeeks.forEach(function (monday) {
+    var wk = dateKey(monday);
+    var w = state.weeks[wk];
+    if (!w) return;
+    var comp = weekCompletion(wk);
+    if (comp.checked > 0) {
+      loggedWeeks++;
+      totalPct += comp.pct;
+      if (!best || comp.pct > best.pct) best = { weekKey: wk, pct: comp.pct };
+    }
+    DAY_KEYS.forEach(function (dk) {
+      CATEGORIES.forEach(function (c) {
+        if (w.days[dk] && w.days[dk][c.key]) perCatTotals[c.key]++;
+      });
+    });
+  });
+  return {
+    loggedWeeks: loggedWeeks,
+    avgPct: loggedWeeks ? Math.round(totalPct / loggedWeeks) : 0,
+    best: best,
+    perCatTotals: perCatTotals
+  };
+}
+
+/* ---------- Icons ---------- */
+
+function checkIconSvg() {
+  return '<svg viewBox="0 0 24 24" class="check-icon" aria-hidden="true"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function chevronLeftSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function chevronRightSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function weekIconSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+}
+function yearIconSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+function cyclesIconSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 13l9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+}
+function scheduleIconSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+function downloadSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function sunSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+function moonSvg() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+}
+
+/* ---------- Render ---------- */
+
+function renderApp() {
+  flushNotes();
+  refreshToday();
+  renderTopbar();
+  renderNav();
+  var main = document.getElementById('main');
+  if (state.currentTab === 'week') main.innerHTML = renderWeekTab();
+  else if (state.currentTab === 'year') main.innerHTML = renderYearTab();
+  else if (state.currentTab === 'cycles') main.innerHTML = renderCyclesTab();
+  else if (state.currentTab === 'schedule') main.innerHTML = renderScheduleTab();
+}
+
+function renderTopbar() {
+  var bar = document.getElementById('topbar');
+  var todayLabel = DAY_SHORT[(today.getDay() + 6) % 7] + ', ' + formatDateShort(today);
+  bar.innerHTML =
+    '<div class="brand"><span class="brand-name">Consistency</span><span class="brand-date">' + todayLabel + '</span></div>' +
+    '<div class="topbar-actions">' +
+      (Store.downloadsNs ? '<button class="icon-btn" data-action="export-data" aria-label="Export backup">' + downloadSvg() + '</button>' : '') +
+      '<button class="icon-btn" id="themeToggleIcon" data-action="toggle-theme" aria-label="Toggle light or dark theme"></button>' +
+    '</div>';
+  renderThemeIcon();
+}
+
+function renderThemeIcon() {
+  var btn = document.getElementById('themeToggleIcon');
+  if (!btn) return;
+  var root = document.documentElement;
+  var isDark = root.dataset.theme === 'dark' ||
+    (!root.dataset.theme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  btn.innerHTML = isDark ? sunSvg() : moonSvg();
+}
+
+function renderNav() {
+  var nav = document.getElementById('bottomnav');
+  var tabs = [
+    { id: 'week', label: 'Week', icon: weekIconSvg() },
+    { id: 'year', label: 'Year', icon: yearIconSvg() },
+    { id: 'cycles', label: 'Cycles', icon: cyclesIconSvg() },
+    { id: 'schedule', label: 'Schedule', icon: scheduleIconSvg() }
+  ];
+  nav.innerHTML = tabs.map(function (t) {
+    var active = state.currentTab === t.id;
+    return '<button class="nav-btn' + (active ? ' active' : '') + '" data-tab="' + t.id + '"' + (active ? ' aria-current="page"' : '') + '>' + t.icon + '<span>' + t.label + '</span></button>';
+  }).join('');
+}
+
+function renderWeekTab() {
+  var weekKey = dateKey(state.currentWeekMonday);
+  var w = ensureWeek(weekKey);
+  var comp = weekCompletion(weekKey);
+  var streak = currentStreak();
+  var cluster = clusterForWeek(weekKey);
+  var isCurrentWeek = weekKey === dateKey(todayMonday);
+
+  var banner = Store.mode === 'local'
+    ? '<div class="banner" role="note">Cloud sync isn\u2019t available here, so ticks are saved on this device only.</div>'
+    : '';
+
+  var clusterBadge = '';
+  if (cluster) {
+    var weeksArr = weeksInCluster(cluster);
+    var idx = weeksArr.indexOf(weekKey) + 1;
+    clusterBadge = '<button class="cluster-badge" data-action="open-cluster" data-id="' + escapeHtml(cluster.id) + '" style="--chip:' + cluster.color + '">' +
+      '<span class="dot"></span><span class="badge-text">' + escapeHtml(cluster.name) + ' \u00b7 Week ' + idx + ' of ' + weeksArr.length + '</span>' +
+      '</button>';
+  }
+
+  var headerCells = CATEGORIES.map(function (c) {
+    return '<th scope="col"><span class="cat-icon" aria-hidden="true">' + c.icon + '</span><span class="cat-label">' + c.short + '</span></th>';
+  }).join('');
+
+  var rows = DAY_KEYS.map(function (dk, i) {
+    var dayDate = addDays(state.currentWeekMonday, i);
+    var isToday = isSameDate(dayDate, today);
+    var cells = CATEGORIES.map(function (c) {
+      var checked = !!w.days[dk][c.key];
+      return '<td>' +
+        '<button class="cell' + (checked ? ' checked' : '') + '" data-action="toggle" data-day="' + dk + '" data-cat="' + c.key + '" style="--cat-color:' + c.color + '" aria-pressed="' + (checked ? 'true' : 'false') + '" aria-label="' + c.label + ', ' + DAY_FULL[i] + '">' +
+          (checked ? checkIconSvg() : '') +
+        '</button>' +
+      '</td>';
+    }).join('');
+    return '<tr class="' + (isToday ? 'today-row' : '') + '">' +
+      '<th scope="row" class="day-cell"><span class="day-name">' + DAY_SHORT[i] + '</span><span class="day-num">' + dayDate.getDate() + '</span></th>' +
+      cells +
+    '</tr>';
+  }).join('');
+
+  return '' +
+    banner +
+    '<div class="week-nav">' +
+      '<button class="nav-arrow" data-action="prev-week" aria-label="Previous week">' + chevronLeftSvg() + '</button>' +
+      '<div class="week-range">' + formatWeekRange(state.currentWeekMonday) + '</div>' +
+      '<button class="nav-arrow" data-action="next-week" aria-label="Next week">' + chevronRightSvg() + '</button>' +
+    '</div>' +
+    (isCurrentWeek ? '' : '<button class="today-btn" data-action="goto-today">Jump to this week</button>') +
+    clusterBadge +
+    '<div class="summary-row">' +
+      '<div class="summary-stat"><span class="stat-num">' + comp.checked + '/' + comp.total + '</span><span class="stat-label">ticked this week</span></div>' +
+      '<div class="summary-stat"><span class="stat-num">' + comp.pct + '%</span><span class="stat-label">complete</span></div>' +
+      '<div class="summary-stat"><span class="stat-num">\ud83d\udd25 ' + streak + '</span><span class="stat-label">day streak</span></div>' +
+    '</div>' +
+    '<div class="grid-wrap">' +
+      '<table class="week-grid">' +
+        '<thead><tr><th class="corner" scope="col"><span class="sr-only">Day</span></th>' + headerCells + '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+    '</div>' +
+    '<div class="notes-block">' +
+      '<label for="weekNotes">Notes for this week</label>' +
+      '<textarea id="weekNotes" data-week="' + weekKey + '" placeholder="Anything worth remembering about this week\u2026">\n' + escapeHtml(w.notes || '') + '</textarea>' +
+    '</div>';
+}
+
+function renderYearTab() {
+  var months = weeksGroupedByMonth(state.currentYear);
+  var stats = yearStats(state.currentYear);
+  var currentKey = dateKey(todayMonday);
+
+  var monthRows = months.map(function (weeksArr, mi) {
+    if (weeksArr.length === 0) return '';
+    var squares = weeksArr.map(function (monday) {
+      var wk = dateKey(monday);
+      var comp = weekCompletion(wk);
+      var cluster = clusterForWeek(wk);
+      var alpha = comp.checked > 0 ? (0.16 + 0.52 * (comp.pct / 100)) : 0;
+      var style = 'background:' + hexToRgba(HEATMAP_HEX, alpha) + ';' + (cluster ? 'border-color:' + cluster.color + ';' : '');
+      var cls = 'week-sq' + (comp.checked > 0 ? ' has-data' : '') + (wk === currentKey ? ' current' : '');
+      return '<button class="' + cls + '" data-action="goto-week" data-week="' + wk + '" style="' + style + '" title="' + escapeHtml(formatWeekRange(monday)) + ' \u00b7 ' + comp.pct + '%" aria-label="Week of ' + escapeHtml(formatDateFull(monday)) + ', ' + comp.pct + ' percent">' + monday.getDate() + '</button>';
+    }).join('');
+    return '<div class="month-row">' +
+      '<div class="month-label">' + MONTH_SHORT[mi] + '</div>' +
+      '<div class="month-squares">' + squares + '</div>' +
+    '</div>';
+  }).join('');
+
+  var activeClusters = state.clusters.filter(function (c) {
+    return weeksInCluster(c).some(function (wk) { return keyToDate(wk).getFullYear() === state.currentYear; });
+  });
+  var legend = activeClusters.length ? ('<div class="cluster-legend">' + activeClusters.map(function (c) {
+    return '<button class="legend-chip" data-action="open-cluster" data-id="' + escapeHtml(c.id) + '"><span class="dot" style="background:' + c.color + '"></span>' + escapeHtml(c.name) + '</button>';
+  }).join('') + '</div>') : '';
+
+  var catBars = CATEGORIES.map(function (c) {
+    return '<div class="cat-bar-row">' +
+      '<span class="cat-bar-icon" aria-hidden="true">' + c.icon + '</span>' +
+      '<span class="cat-bar-label">' + c.label + '</span>' +
+      '<span class="cat-bar-count">' + stats.perCatTotals[c.key] + '</span>' +
+    '</div>';
+  }).join('');
+
+  return '' +
+    '<div class="year-nav">' +
+      '<button class="nav-arrow" data-action="prev-year" aria-label="Previous year">' + chevronLeftSvg() + '</button>' +
+      '<div class="year-label">' + state.currentYear + '</div>' +
+      '<button class="nav-arrow" data-action="next-year" aria-label="Next year">' + chevronRightSvg() + '</button>' +
+    '</div>' +
+    '<div class="summary-row">' +
+      '<div class="summary-stat"><span class="stat-num">' + stats.loggedWeeks + '</span><span class="stat-label">weeks logged</span></div>' +
+      '<div class="summary-stat"><span class="stat-num">' + stats.avgPct + '%</span><span class="stat-label">avg per week</span></div>' +
+      '<div class="summary-stat"><span class="stat-num">' + (stats.best ? stats.best.pct + '%' : '\u2014') + '</span><span class="stat-label">best week</span></div>' +
+    '</div>' +
+    '<p class="hint">Each square is a week (labelled by its Monday). Darker means more ticked. Tap one to open it.</p>' +
+    '<div class="year-heatmap">' + monthRows + '</div>' +
+    legend +
+    '<div class="cat-bars"><h3>Days ticked in ' + state.currentYear + '</h3>' + catBars + '</div>';
+}
+
+function renderCyclesTab() {
+  var currentKey = dateKey(todayMonday);
+  var list = state.clusters.slice().sort(function (a, b) { return a.startWeek < b.startWeek ? 1 : -1; });
+  var cards = list.map(function (c) {
+    var stats = clusterStats(c);
+    var open = state.openClusterId === c.id;
+    var weekSquares = stats.weeks.map(function (wk, i) {
+      var comp = weekCompletion(wk);
+      var alpha = comp.checked > 0 ? (0.16 + 0.52 * (comp.pct / 100)) : 0;
+      var cls = 'mini-sq' + (comp.checked > 0 ? ' has-data' : '') + (wk === currentKey ? ' current' : '');
+      return '<button class="' + cls + '" data-action="goto-week" data-week="' + wk + '" style="background:' + hexToRgba(HEATMAP_HEX, alpha) + '" title="' + escapeHtml(formatWeekRange(keyToDate(wk))) + ' \u00b7 ' + comp.pct + '%" aria-label="Week ' + (i + 1) + ', ' + escapeHtml(formatWeekRange(keyToDate(wk))) + '">' + (i + 1) + '</button>';
+    }).join('');
+    var catRows = CATEGORIES.map(function (cat) {
+      var n = stats.perCat[cat.key];
+      var pct = stats.elapsedDays ? Math.round((n / stats.elapsedDays) * 100) : 0;
+      return '<div class="cluster-cat-row">' +
+        '<span class="cat-bar-icon" aria-hidden="true">' + cat.icon + '</span>' +
+        '<span class="cat-bar-label">' + cat.label + '</span>' +
+        '<div class="mini-bar"><div class="mini-bar-fill" style="width:' + pct + '%;background:' + cat.color + '"></div></div>' +
+        '<span class="cat-bar-count">' + n + '/' + stats.elapsedDays + '</span>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="cluster-card">' +
+      '<button class="cluster-card-head" data-action="toggle-cluster" data-id="' + escapeHtml(c.id) + '" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+        '<span class="dot" style="background:' + c.color + '"></span>' +
+        '<div class="cluster-head-text">' +
+          '<div class="cluster-name">' + escapeHtml(c.name) + '</div>' +
+          '<div class="cluster-range">' + formatDateFull(keyToDate(c.startWeek)) + ' \u2013 ' + formatDateFull(addDays(keyToDate(c.endWeek), 6)) + ' \u00b7 ' + stats.weeks.length + ' weeks</div>' +
+          '<div class="cluster-status">' + clusterStatusText(stats) + '</div>' +
+        '</div>' +
+        '<div class="cluster-pct">' + (stats.pct === null ? '\u2014' : stats.pct + '%') + '</div>' +
+      '</button>' +
+      (open ? (
+        '<div class="cluster-body">' +
+          '<div class="mini-heatmap">' + weekSquares + '</div>' +
+          '<div class="cluster-cats">' + catRows + '</div>' +
+          '<div class="cluster-actions">' +
+            '<button class="text-btn" data-action="edit-cluster" data-id="' + escapeHtml(c.id) + '">Edit</button>' +
+            '<button class="text-btn danger" data-action="delete-cluster" data-id="' + escapeHtml(c.id) + '">Delete</button>' +
+          '</div>' +
+        '</div>'
+      ) : '') +
+    '</div>';
+  }).join('');
+
+  var empty = list.length === 0 ? (
+    '<div class="empty-state">' +
+      '<p class="empty-title">No cycles yet</p>' +
+      '<p class="empty-sub">Group consecutive weeks into a training block, like a \u201cVertical Jump Macrocycle\u201d from October to December, to see your consistency across the whole block.</p>' +
+    '</div>'
+  ) : '';
+
+  return '' +
+    '<div class="cycles-header">' +
+      '<h2>Cycles</h2>' +
+      '<button class="primary-btn" data-action="new-cluster">+ New cycle</button>' +
+    '</div>' +
+    empty +
+    '<div class="cluster-list">' + cards + '</div>';
+}
+
+function renderScheduleTab() {
+  var days = DAY_KEYS.map(function (dk, i) {
+    var info = SCHEDULE[dk];
+    var blocks = info.blocks.map(function (b) {
+      return '<div class="sched-block">' +
+        '<div class="sched-time">' + b[0] + '</div>' +
+        '<div class="sched-icon" aria-hidden="true">' + b[1] + '</div>' +
+        '<div class="sched-label">' + b[2] + '</div>' +
+      '</div>';
+    }).join('');
+    return '<div class="sched-day">' +
+      '<div class="sched-day-head">' + DAY_FULL[i] + (info.gymDay ? '<span class="gym-badge">\ud83c\udfcb\ufe0f Gym day</span>' : '') + '</div>' +
+      '<div class="sched-blocks">' + blocks + '</div>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="schedule-intro"><h2>Your week</h2><p>Reference copy of your weekly routine.</p></div>' +
+    '<div class="schedule-list">' + days + '</div>';
+}
+
+/* ---------- Modal ---------- */
+
+function openClusterModal(editingId) {
+  var editing = editingId ? state.clusters.find(function (c) { return c.id === editingId; }) : null;
+  var usedColors = state.clusters.map(function (c) { return c.color; });
+  var defaultColor = CLUSTER_COLORS.find(function (col) { return usedColors.indexOf(col) === -1; }) || CLUSTER_COLORS[state.clusters.length % CLUSTER_COLORS.length];
+  var name = editing ? editing.name : '';
+  var startVal = editing ? editing.startWeek : dateKey(state.currentWeekMonday);
+  var endVal = editing ? editing.endWeek : dateKey(addWeeks(state.currentWeekMonday, 11));
+  var color = editing ? editing.color : defaultColor;
+
+  var swatches = CLUSTER_COLORS.map(function (col) {
+    return '<button type="button" class="swatch' + (col === color ? ' selected' : '') + '" data-color="' + col + '" style="background:' + col + '" aria-label="Pick colour ' + col + '"></button>';
+  }).join('');
+
+  var html = '' +
+    '<div class="modal-backdrop" data-action="close-modal-backdrop">' +
+      '<div class="modal" role="dialog" aria-modal="true" aria-label="' + (editing ? 'Edit cycle' : 'New cycle') + '">' +
+        '<h3>' + (editing ? 'Edit cycle' : 'New cycle') + '</h3>' +
+        '<label>Name<input type="text" id="clusterName" value="' + escapeHtml(name) + '" placeholder="e.g. Vertical Jump Macrocycle" maxlength="60" autocomplete="off"></label>' +
+        '<div class="date-row">' +
+          '<label>Start date<input type="date" id="clusterStart" value="' + escapeHtml(startVal) + '"></label>' +
+          '<label>End date<input type="date" id="clusterEnd" value="' + escapeHtml(endVal) + '"></label>' +
+        '</div>' +
+        '<div class="preview" id="clusterPreview"></div>' +
+        '<p class="modal-help">Cycles run Monday to Sunday, so dates snap to whole weeks.</p>' +
+        '<div class="swatches">' + swatches + '</div>' +
+        '<div class="modal-actions">' +
+          (editing ? '<button class="text-btn danger" data-action="delete-cluster" data-id="' + escapeHtml(editing.id) + '">Delete</button>' : '<span></span>') +
+          '<div>' +
+            '<button class="text-btn" data-action="close-modal">Cancel</button>' +
+            '<button class="primary-btn" data-action="save-cluster" data-id="' + (editing ? escapeHtml(editing.id) : '') + '">' + (editing ? 'Save' : 'Create') + '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  var root = document.getElementById('modalRoot');
+  root.innerHTML = html;
+  root.dataset.selectedColor = color;
+  updateClusterPreview();
+  var nameInput = document.getElementById('clusterName');
+  if (nameInput && !editing) nameInput.focus();
+}
+
+function openDeleteConfirm(id) {
+  var c = state.clusters.find(function (x) { return x.id === id; });
+  var label = c ? c.name : 'this cycle';
+  var html = '' +
+    '<div class="modal-backdrop" data-action="close-modal-backdrop">' +
+      '<div class="modal" role="alertdialog" aria-modal="true" aria-label="Delete cycle">' +
+        '<h3>Delete \u201c' + escapeHtml(label) + '\u201d?</h3>' +
+        '<p class="modal-text">The weeks inside it keep all their ticks and notes. Only the grouping is removed.</p>' +
+        '<div class="modal-actions"><span></span><div>' +
+          '<button class="text-btn" data-action="close-modal">Cancel</button>' +
+          '<button class="danger-btn" data-action="confirm-delete-cluster" data-id="' + escapeHtml(id) + '">Delete</button>' +
+        '</div></div>' +
+      '</div>' +
+    '</div>';
+  document.getElementById('modalRoot').innerHTML = html;
+}
+
+function updateClusterPreview() {
+  var startInput = document.getElementById('clusterStart');
+  var endInput = document.getElementById('clusterEnd');
+  var preview = document.getElementById('clusterPreview');
+  if (!startInput || !endInput || !preview) return;
+  if (!startInput.value || !endInput.value) {
+    preview.textContent = '';
+    return;
+  }
+  var startMonday = getMonday(keyToDate(startInput.value));
+  var endMonday = getMonday(keyToDate(endInput.value));
+  if (endMonday < startMonday) {
+    preview.textContent = 'End date must not be before the start date.';
+    preview.classList.add('preview-error');
+    return;
+  }
+  preview.classList.remove('preview-error');
+  var weeks = Math.round((endMonday - startMonday) / (7 * MS_DAY)) + 1;
+  preview.textContent = weeks + ' week' + (weeks === 1 ? '' : 's') + ' \u00b7 ' + formatDateFull(startMonday) + ' \u2013 ' + formatDateFull(addDays(endMonday, 6));
+}
+
+function closeModal() {
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+async function handleSaveCluster(editingId) {
+  if (clusterBusy) return;
+  var nameInput = document.getElementById('clusterName');
+  var startInput = document.getElementById('clusterStart');
+  var endInput = document.getElementById('clusterEnd');
+  if (!nameInput || !startInput || !endInput) return;
+  var name = nameInput.value.trim();
+  if (!name) {
+    showToast('Give the cycle a name first.');
+    nameInput.focus();
+    return;
+  }
+  if (!startInput.value || !endInput.value) {
+    showToast('Pick a start and end date.');
+    return;
+  }
+  var startMonday = getMonday(keyToDate(startInput.value));
+  var endMonday = getMonday(keyToDate(endInput.value));
+  if (endMonday < startMonday) {
+    showToast('The end date must not be before the start date.');
+    return;
+  }
+  var color = document.getElementById('modalRoot').dataset.selectedColor;
+  if (!color || !HEX_RE.test(color)) color = CLUSTER_COLORS[0];
+
+  clusterBusy = true;
+  mutationCount++;
+  try {
+    if (editingId) {
+      var idx = state.clusters.findIndex(function (c) { return c.id === editingId; });
+      if (idx === -1) {
+        closeModal();
+        renderApp();
+        return;
+      }
+      var patch = { name: name, startWeek: dateKey(startMonday), endWeek: dateKey(endMonday), color: color };
+      var prev = Object.assign({}, state.clusters[idx]);
+      Object.assign(state.clusters[idx], patch);
+      var okU = await Store.updateCluster(editingId, patch);
+      if (!okU) {
+        state.clusters[idx] = prev;
+        showToast(Store.errorMessage('Could not save changes.'));
+        return;
+      }
+    } else {
+      var data = {
+        name: name,
+        startWeek: dateKey(startMonday),
+        endWeek: dateKey(endMonday),
+        color: color,
+        createdAt: new Date().toISOString()
+      };
+      var id = await Store.addCluster(data);
+      if (!id) {
+        showToast(Store.errorMessage('Could not create the cycle.'));
+        return;
+      }
+      state.clusters.push(Object.assign({ id: id }, data));
+      if (Store.mode === 'local' && !Store.persistClustersLocal()) {
+        state.clusters.pop();
+        showToast('Could not save on this device.');
+        return;
+      }
+      state.openClusterId = id;
+    }
+  } finally {
+    clusterBusy = false;
+  }
+  closeModal();
+  renderApp();
+}
+
+async function handleDeleteCluster(id) {
+  if (clusterBusy) return;
+  clusterBusy = true;
+  mutationCount++;
+  var failed = false;
+  try {
+    var backup = state.clusters.slice();
+    state.clusters = state.clusters.filter(function (c) { return c.id !== id; });
+    var ok = await Store.deleteCluster(id);
+    if (!ok) {
+      state.clusters = backup;
+      failed = true;
+      showToast(Store.errorMessage('Could not delete the cycle.'));
+    } else if (state.openClusterId === id) {
+      state.openClusterId = null;
+    }
+  } finally {
+    clusterBusy = false;
+  }
+  closeModal();
+  renderApp();
+  return !failed;
+}
+
+/* ---------- Toast / theme / export ---------- */
+
+var toastTimer = null;
+function showToast(msg) {
+  var root = document.getElementById('toastRoot');
+  if (!root) return;
+  root.textContent = msg;
+  root.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { root.classList.remove('show'); }, 3200);
+}
+
+function toggleTheme() {
+  var root = document.documentElement;
+  var current = root.dataset.theme;
+  var next;
+  if (current === 'dark') next = 'light';
+  else if (current === 'light') next = 'dark';
+  else {
+    var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    next = systemDark ? 'light' : 'dark';
+  }
+  root.dataset.theme = next;
+  try { localStorage.setItem('ct_theme', next); } catch (e) {}
+  renderThemeIcon();
+}
+
+async function handleExport() {
+  if (!Store.downloadsNs) {
+    showToast('Export isn\u2019t available here.');
+    return;
+  }
+  flushNotes();
+  var payload = { exportedAt: new Date().toISOString(), app: 'consistency', weeks: state.weeks, clusters: state.clusters };
+  var json = JSON.stringify(payload, null, 2);
+  try {
+    await Store.downloadsNs.save({ filename: 'consistency-backup.json', data: json });
+    showToast('Backup ready.');
+  } catch (e) {
+    if (e && e.code === 'declined') return;
+    showToast('Could not export a backup.');
+  }
+}
+
+/* ---------- Notes flush / refresh ---------- */
+
+var notesTimer = null;
+
+function flushNotes() {
+  if (!state.ready) return;
+  var ta = document.getElementById('weekNotes');
+  if (!ta) return;
+  var wk = ta.dataset ? ta.dataset.week : null;
+  if (!wk || !DATE_RE.test(wk)) return;
+  var existing = state.weeks[wk];
+  var current = existing ? existing.notes : '';
+  if (ta.value === current) return;
+  var w = existing || ensureWeek(wk);
+  w.notes = ta.value;
+  w.updatedAt = new Date().toISOString();
+  persistWeek(wk).then(function (ok) {
+    if (!ok) showToast(Store.errorMessage('Could not save notes.'));
+  });
+}
+
+var lastRefreshAt = 0;
+var refreshing = false;
+
+/* Pulls the latest data when the page returns to the foreground (e.g. after ticking on another device).
+   Skipped whenever local changes are unsaved, so it can never overwrite them. */
+async function refreshFromServer() {
+  if (Store.mode !== 'db' || refreshing || !state.ready) return;
+  if (Date.now() - lastRefreshAt < 15000) return;
+  flushNotes();
+  if (hasUnsynced() || clusterBusy) return;
+  refreshing = true;
+  var startMutation = mutationCount;
+  try {
+    var data = await Store.loadAll();
+    lastRefreshAt = Date.now();
+    if (!data.ok) return;
+    if (mutationCount !== startMutation || hasUnsynced() || clusterBusy) return;
+    state.weeks = data.weeks;
+    state.clusters = data.clusters;
+    if (state.openClusterId && !state.clusters.some(function (c) { return c.id === state.openClusterId; })) {
+      state.openClusterId = null;
+    }
+    renderApp();
+  } finally {
+    refreshing = false;
+  }
+}
+
+/* ---------- Events ---------- */
+
+async function handleClick(e) {
+  var swatch = e.target.closest('.swatch');
+  if (swatch) {
+    var modalRoot = document.getElementById('modalRoot');
+    modalRoot.dataset.selectedColor = swatch.dataset.color;
+    modalRoot.querySelectorAll('.swatch').forEach(function (s) { s.classList.toggle('selected', s === swatch); });
+    return;
+  }
+
+  var tabBtn = e.target.closest('[data-tab]');
+  if (tabBtn) {
+    state.currentTab = tabBtn.dataset.tab;
+    state.openClusterId = null;
+    renderApp();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  var actionEl = e.target.closest('[data-action]');
+  if (!actionEl) return;
+  var action = actionEl.dataset.action;
+
+  if (action === 'toggle') {
+    var dk = actionEl.dataset.day;
+    var ck = actionEl.dataset.cat;
+    if (DAY_KEYS.indexOf(dk) === -1 || !CATEGORIES.some(function (c) { return c.key === ck; })) return;
+    var weekKey = dateKey(state.currentWeekMonday);
+    var w = ensureWeek(weekKey);
+    w.days[dk][ck] = !w.days[dk][ck];
+    w.updatedAt = new Date().toISOString();
+    renderApp();
+    var okSave = await persistWeek(weekKey);
+    if (!okSave) showToast(Store.errorMessage('Could not save. Will retry when you\u2019re back online.'));
+  } else if (action === 'prev-week') {
+    state.currentWeekMonday = addWeeks(state.currentWeekMonday, -1);
+    renderApp();
+  } else if (action === 'next-week') {
+    state.currentWeekMonday = addWeeks(state.currentWeekMonday, 1);
+    renderApp();
+  } else if (action === 'goto-today') {
+    refreshToday();
+    state.currentWeekMonday = todayMonday;
+    renderApp();
+  } else if (action === 'goto-week') {
+    var target = actionEl.dataset.week;
+    if (!DATE_RE.test(target)) return;
+    state.currentWeekMonday = getMonday(keyToDate(target));
+    state.currentTab = 'week';
+    renderApp();
+    window.scrollTo(0, 0);
+  } else if (action === 'prev-year') {
+    state.currentYear -= 1;
+    renderApp();
+  } else if (action === 'next-year') {
+    state.currentYear += 1;
+    renderApp();
+  } else if (action === 'new-cluster') {
+    openClusterModal(null);
+  } else if (action === 'edit-cluster') {
+    openClusterModal(actionEl.dataset.id);
+  } else if (action === 'save-cluster') {
+    await handleSaveCluster(actionEl.dataset.id || null);
+  } else if (action === 'delete-cluster') {
+    openDeleteConfirm(actionEl.dataset.id);
+  } else if (action === 'confirm-delete-cluster') {
+    await handleDeleteCluster(actionEl.dataset.id);
+  } else if (action === 'close-modal') {
+    closeModal();
+  } else if (action === 'close-modal-backdrop') {
+    if (e.target === actionEl) closeModal();
+  } else if (action === 'toggle-cluster') {
+    var cid = actionEl.dataset.id;
+    state.openClusterId = state.openClusterId === cid ? null : cid;
+    renderApp();
+  } else if (action === 'open-cluster') {
+    state.currentTab = 'cycles';
+    state.openClusterId = actionEl.dataset.id;
+    renderApp();
+    window.scrollTo(0, 0);
+  } else if (action === 'toggle-theme') {
+    toggleTheme();
+  } else if (action === 'export-data') {
+    await handleExport();
+  } else if (action === 'retry-load') {
+    document.getElementById('loadError').style.display = 'none';
+    document.getElementById('loading').style.display = '';
+    await bootLoad();
+  }
+}
+
+function attachEvents() {
+  document.body.addEventListener('click', function (e) {
+    handleClick(e).catch(function (err) {
+      console.error(err);
+      showToast('Something went wrong. Please try again.');
+    });
+  });
+
+  document.body.addEventListener('change', function (e) {
+    if (e.target.id === 'weekNotes') flushNotes();
+    else if (e.target.id === 'clusterStart' || e.target.id === 'clusterEnd') updateClusterPreview();
+  });
+
+  document.body.addEventListener('input', function (e) {
+    if (e.target.id === 'weekNotes') {
+      if (notesTimer) clearTimeout(notesTimer);
+      notesTimer = setTimeout(flushNotes, 800);
+    } else if (e.target.id === 'clusterStart' || e.target.id === 'clusterEnd') {
+      updateClusterPreview();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var root = document.getElementById('modalRoot');
+      if (root && root.innerHTML) closeModal();
+    }
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+      flushNotes();
+      return;
+    }
+    if (!state.ready) return;
+    retryFailed();
+    if (dateKey(stripTime(new Date())) !== dateKey(today)) renderApp();
+    refreshFromServer();
+  });
+
+  window.addEventListener('pagehide', flushNotes);
+  window.addEventListener('online', retryFailed);
+}
+
+/* ---------- Boot ---------- */
+
+async function bootLoad() {
+  var data = await Store.loadAll();
+  var loading = document.getElementById('loading');
+  var errorBox = document.getElementById('loadError');
+  if (!data.ok) {
+    loading.style.display = 'none';
+    errorBox.style.display = '';
+    return;
+  }
+  state.weeks = data.weeks;
+  state.clusters = data.clusters;
+  state.ready = true;
+  lastRefreshAt = Date.now();
+  loading.style.display = 'none';
+  errorBox.style.display = 'none';
+  document.getElementById('app').style.display = '';
+  renderApp();
+}
+
+async function init() {
+  try {
+    var saved = localStorage.getItem('ct_theme');
+    if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+  } catch (e) {}
+
+  attachEvents();
+  await Store.init();
+  await bootLoad();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+</script>
+</body>
+</html>
